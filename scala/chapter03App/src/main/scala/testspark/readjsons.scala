@@ -119,7 +119,7 @@ object readjsons extends App {
   //artistTerms.show();
   val termsFlat = artistTerms.rdd
   val first = termsFlat.first()
-  val mapped = first.getAs[WrappedArray[Int]](0)
+  val mapped = first.getAs[WrappedArray[Int]](1)
   val test = mapped.mkString("\n")
 
   // val termsString = termsFlat.map { x => x.getAs[WrappedArray[Int]](0).mkString("\n") }
@@ -128,7 +128,7 @@ object readjsons extends App {
   // so it will combine all the values in the RDD
   val termsString = termsFlat.map {
     x =>
-      x.getAs[WrappedArray[String]](0).groupBy {
+      x.getAs[WrappedArray[String]](1).groupBy {
         l => l
       }.map(f => (f._1, f._2.length))
   }.flatMap(identity)
