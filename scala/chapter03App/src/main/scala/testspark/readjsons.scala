@@ -15,6 +15,7 @@ object readjsons extends App {
   //val spark = SparkSession.builder().master("local").appName("practice").getOrCreate();
   //val jsonFiles = sc.wholeTextFiles("/Volumes/HD-500GB/Users/nikolausn/Documents/msimsvn/msimrepo/lab-adm/python-converter/data/*/*/*/*.json");
 
+  
   // spark with hadoop
   val sc = new SparkContext(master="spark://sp17-cs511-02.cs.illinois.edu:7077",appName="practice");
   val spark = SparkSession.builder().master("spark://sp17-cs511-02.cs.illinois.edu:7077").appName("practice").getOrCreate(); 
@@ -95,7 +96,7 @@ object readjsons extends App {
   
   
   val artistSong = spark.sql("SELECT get_year,get_artist_name,count(get_artist_name) as total_music from musicdb GROUP BY get_year,get_artist_name order by get_year desc,total_music desc");
-  artistSong.show();
+  //artistSong.show();
   artistSong.rdd.saveAsTextFile("artist_song")
   /*
    * save output into one file
@@ -104,7 +105,7 @@ object readjsons extends App {
   
   
   val artistHotness = spark.sql("SELECT get_artist_name,avg(get_artist_hotttnesss) as avg_hottness,avg(get_duration) as avg_duration from musicdb GROUP BY get_artist_name order by avg_hottness desc");
-  artistHotness.show()
+  //artistHotness.show()
   artistHotness.rdd.saveAsTextFile("artist_hotness")
   merge("artist_hotness","artist_hotness_output.txt")
   
@@ -115,7 +116,7 @@ object readjsons extends App {
   // this works like wordcount but the complexity lies in the list of string for every RDD row
   // val termsFlat = artistTerms.rdd.groupBy { x => x }.map( t => (t._1,t._2.size))
   val artistTerms = spark.sql("SELECT get_artist_terms from musicdb");
-  artistTerms.show();
+  //artistTerms.show();
   val termsFlat = artistTerms.rdd
   val first = termsFlat.first()
   val mapped = first.getAs[WrappedArray[Int]](0)
