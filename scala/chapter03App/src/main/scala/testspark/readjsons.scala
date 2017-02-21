@@ -5,17 +5,21 @@ import org.apache.spark.sql.SparkSession
 import scala.collection.mutable
 import org.apache.spark.sql.functions.explode
 import scala.collection.mutable.WrappedArray
+import org.apache.hadoop.conf.Configuration
+import org.apache.commons.io.FileUtils
+import java.io.File
 
 object readjsons extends App {
   // spark local
-  val sc = new SparkContext(master = "local", appName = "practice");
-  val spark = SparkSession.builder().master("local").appName("practice").getOrCreate();
-  val jsonFiles = sc.wholeTextFiles("/Volumes/HD-500GB/Users/nikolausn/Documents/msimsvn/msimrepo/lab-adm/python-converter/data/*/*/*/*.json", 3);
+  //val sc = new SparkContext(master = "local", appName = "practice");
+  //val spark = SparkSession.builder().master("local").appName("practice").getOrCreate();
+  //val jsonFiles = sc.wholeTextFiles("/Volumes/HD-500GB/Users/nikolausn/Documents/msimsvn/msimrepo/lab-adm/python-converter/data/*/*/*/*.json");
 
-  //val sc = new SparkContext(master="spark://sp17-cs511-02.cs.illinois.edu:7077",appName="practice");
-  //val spark = SparkSession.builder().master("spark://sp17-cs511-02.cs.illinois.edu:7077").appName("practice").getOrCreate(); 
+  // spark with hadoop
+  val sc = new SparkContext(master="spark://sp17-cs511-02.cs.illinois.edu:7077",appName="practice");
+  val spark = SparkSession.builder().master("spark://sp17-cs511-02.cs.illinois.edu:7077").appName("practice").getOrCreate(); 
   // Read json files itno rdd
-  //val jsonFiles = sc.wholeTextFiles("hdfs://sp17-cs511-02.cs.illinois.edu:54310/musicds/*/*/*/*.json", 3);
+  val jsonFiles = sc.wholeTextFiles("hdfs://sp17-cs511-02.cs.illinois.edu:54310/musicds/*/*/*/*.json");
 
   // convert jsonrdd into dataframe
   val jsonDF = spark.read.json(jsonFiles.values);
@@ -73,20 +77,45 @@ object readjsons extends App {
  |-- get_track_id: string (nullable = true)
  |-- get_year: long (nullable = true)
    */
-
-  val artistSong = spark.sql("SELECT get_year,get_artist_name,count(get_artist_name) as total_music from musicdb GROUP BY get_year,get_artist_name order by get_year,total_music desc");
+  
+  import org.apache.hadoop.fs._
+  
+  /*
+   * method to save distributed file from rddSaveAs into one file
+   */
+  def merge(srcPath: String, dstPath: String): Unit = {
+    val hadoopConfig = new Configuration()
+    val hdfs = FileSystem.get(hadoopConfig)
+    FileUtil.copyMerge(hdfs, new Path(srcPath), hdfs, new Path(dstPath), false, hadoopConfig, null)
+    /* 
+     * delete the src directory after merging
+     */
+    FileUtils.deleteDirectory(new File(srcPath))
+  }
+  
+  
+  val artistSong = spark.sql("SELECT get_year,get_artist_name,count(get_artist_name) as total_music from musicdb GROUP BY get_year,get_artist_name order by get_year desc,total_music desc");
   artistSong.show();
-  //artistSong.rdd.saveAsTextFile("artist_song.txt")
+  artistSong.rdd.saveAsTextFile("artist_song")
+  /*
+   * save output into one file
+   */
+  merge("artist_song", "artist_song_output.txt")
+  
+  
   val artistHotness = spark.sql("SELECT get_artist_name,avg(get_artist_hotttnesss) as avg_hottness,avg(get_duration) as avg_duration from musicdb GROUP BY get_artist_name order by avg_hottness desc");
   artistHotness.show()
-
+  artistHotness.rdd.saveAsTextFile("artist_hotness")
+  merge("artist_hotness","artist_hotness_output.txt")
   
+
+
   // third task, counting music terms
   // we can use Spark SQL for this, need to use RDD and map reduce
   // this works like wordcount but the complexity lies in the list of string for every RDD row
   // val termsFlat = artistTerms.rdd.groupBy { x => x }.map( t => (t._1,t._2.size))
   val artistTerms = spark.sql("SELECT get_artist_terms from musicdb");
-  artistTerms.show(); 
+  artistTerms.show();
   val termsFlat = artistTerms.rdd
   val first = termsFlat.first()
   val mapped = first.getAs[WrappedArray[Int]](0)
@@ -105,9 +134,11 @@ object readjsons extends App {
 
   //count the combined terms using reduceByKey, add the count value
   val termsCount = termsString.reduceByKey { case (x, y) => x + y }
+  termsCount.saveAsTextFile("terms_count")
+  merge("terms_count","terms_count_output.txt")
 
   //print the result
-  println(termsCount.collect().mkString(","))
+  //println(termsCount.collect().mkString(","))
 
   //print(termsFlat.first());
   //val termsGroups = artistTerms.rdd.map { x => x.s } groupByKey
