@@ -115,7 +115,7 @@ object readjsons extends App {
   // we can use Spark SQL for this, need to use RDD and map reduce
   // this works like wordcount but the complexity lies in the list of string for every RDD row
   // val termsFlat = artistTerms.rdd.groupBy { x => x }.map( t => (t._1,t._2.size))
-  val artistTerms = spark.sql("SELECT get_artist_terms from musicdb");
+  val artistTerms = spark.sql("SELECT distinct get_artist_name,get_artist_terms from musicdb");
   //artistTerms.show();
   val termsFlat = artistTerms.rdd
   val first = termsFlat.first()
