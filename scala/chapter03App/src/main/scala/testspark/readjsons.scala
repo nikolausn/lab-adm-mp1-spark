@@ -135,7 +135,8 @@ object readjsons extends App {
 
   //count the combined terms using reduceByKey, add the count value
   val termsCount = termsString.reduceByKey { case (x, y) => x + y }
-  termsCount.saveAsTextFile("terms_count")
+  val termsCountSorted = termsCount.map{ case (x,y) => (y,x) }.sortByKey(false);
+  termsCountSorted.saveAsTextFile("terms_count")
   merge("terms_count","terms_count_output.txt")
 
   //print the result
