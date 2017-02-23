@@ -11,7 +11,7 @@ import java.io.File
 import java.util.Date
 import java.text.SimpleDateFormat
 
-object readjsons extends App {
+object main extends App {
   // spark local
   //val sc = new SparkContext(master = "local", appName = "practice");
   //val spark = SparkSession.builder().master("local").appName("practice").getOrCreate();
