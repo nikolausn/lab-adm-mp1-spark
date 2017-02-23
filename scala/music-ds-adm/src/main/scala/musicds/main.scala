@@ -102,20 +102,24 @@ object main extends App {
   }
 
   val test = spark.sql("SELECT * from musicdb");
-  test.show()
+  //test.show()
 
   val artistSong = spark.sql("SELECT get_year,get_artist_name,count(get_artist_name) as total_music from musicdb GROUP BY get_year,get_artist_name order by get_year desc,total_music desc");
-  artistSong.show();
+  //artistSong.show();
   artistSong.rdd.saveAsTextFile("artist_song_" + dateString)
   /*
    * save output into one file
    */
   merge("artist_song_" + dateString, "artist_song_output_" + dateString + ".txt")
 
+  println("Task 1 Execution, artist and song finished")
+
   val artistHotness = spark.sql("SELECT get_artist_name,avg(get_artist_hotttnesss) as avg_hottness,avg(get_duration) as avg_duration from musicdb GROUP BY get_artist_name order by avg_hottness desc");
   //artistHotness.show()
   artistHotness.rdd.saveAsTextFile("artist_hotness_" + dateString)
   merge("artist_hotness_" + dateString, "artist_hotness_output_" + dateString + ".txt")
+
+  println("Task 2 Execution, artist hotttnesss finished")
 
   // third task, counting music terms
   // we can use Spark SQL for this, need to use RDD and map reduce
@@ -144,6 +148,10 @@ object main extends App {
   val termsCountSorted = termsCount.map { case (x, y) => (y, x) }.sortByKey(false);
   termsCountSorted.saveAsTextFile("terms_count_" + dateString)
   merge("terms_count_" + dateString, "terms_count_output_" + dateString + ".txt")
+
+  println("Task 3 Execution, terms grouping (map reduce) finished")
+
+  prinln("All Jobs Executed succesfully") 
 
   //print the result
   //println(termsCount.collect().mkString(","))
