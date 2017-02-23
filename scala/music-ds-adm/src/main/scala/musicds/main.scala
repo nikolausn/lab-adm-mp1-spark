@@ -1,4 +1,4 @@
-package testspark
+package musicds
 
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
@@ -8,24 +8,31 @@ import scala.collection.mutable.WrappedArray
 import org.apache.hadoop.conf.Configuration
 import org.apache.commons.io.FileUtils
 import java.io.File
+import java.util.Date
+import java.text.SimpleDateFormat
 
 object readjsons extends App {
   // spark local
-  //val sc = new SparkContext(master = "local", appName = "practice");
-  //val spark = SparkSession.builder().master("local").appName("practice").getOrCreate();
+  val sc = new SparkContext(master = "local", appName = "practice");
+  val spark = SparkSession.builder().master("local").appName("practice").getOrCreate();
   //val jsonFiles = sc.wholeTextFiles("/Volumes/HD-500GB/Users/nikolausn/Documents/msimsvn/msimrepo/lab-adm/python-converter/data/*/*/*/*.json");
+  val jsonFiles = sc.wholeTextFiles("/Volumes/HD-500GB/Users/nikolausn/Documents/msimsvn/msimrepo/lab-adm/python-converter/output.json");
 
-  
   // spark with hadoop
-  val sc = new SparkContext(master="spark://sp17-cs511-02.cs.illinois.edu:7077",appName="practice");
-  val spark = SparkSession.builder().master("spark://sp17-cs511-02.cs.illinois.edu:7077").appName("practice").getOrCreate(); 
+  //val sc = new SparkContext(master="spark://sp17-cs511-02.cs.illinois.edu:7077",appName="practice");
+  //val spark = SparkSession.builder().master("spark://sp17-cs511-02.cs.illinois.edu:7077").appName("practice").getOrCreate(); 
   // Read json files itno rdd
-  val jsonFiles = sc.wholeTextFiles("hdfs://sp17-cs511-02.cs.illinois.edu:54310/musicds/*/*/*/*.json");
+  //val jsonFiles = sc.wholeTextFiles("hdfs://sp17-cs511-02.cs.illinois.edu:54310/musicds/*/*/*/*.json");
 
   // convert jsonrdd into dataframe
   val jsonDF = spark.read.json(jsonFiles.values);
+  //val jsonDF = spark.read.json("/Volumes/HD-500GB/Users/nikolausn/Documents/msimsvn/msimrepo/lab-adm/python-converter/output.json");
   //jsonDF.printSchema();
   jsonDF.createOrReplaceTempView("musicdb");
+
+  val date = new Date();
+  val sdf = new SimpleDateFormat("yyyyMMddHHmm");
+  val dateString = sdf.format(date)
 
   /*
    * Schema for the million song dataset after reading the json files
@@ -78,9 +85,9 @@ object readjsons extends App {
  |-- get_track_id: string (nullable = true)
  |-- get_year: long (nullable = true)
    */
-  
+
   import org.apache.hadoop.fs._
-  
+
   /*
    * method to save distributed file from rddSaveAs into one file
    */
@@ -93,23 +100,22 @@ object readjsons extends App {
      */
     FileUtils.deleteDirectory(new File(srcPath))
   }
-  
-  
+
+  val test = spark.sql("SELECT * from musicdb");
+  test.show()
+
   val artistSong = spark.sql("SELECT get_year,get_artist_name,count(get_artist_name) as total_music from musicdb GROUP BY get_year,get_artist_name order by get_year desc,total_music desc");
-  //artistSong.show();
-  artistSong.rdd.saveAsTextFile("artist_song")
+  artistSong.show();
+  artistSong.rdd.saveAsTextFile("artist_song_" + dateString)
   /*
    * save output into one file
    */
-  merge("artist_song", "artist_song_output.txt")
-  
-  
+  merge("artist_song_" + dateString, "artist_song_output_" + dateString + ".txt")
+
   val artistHotness = spark.sql("SELECT get_artist_name,avg(get_artist_hotttnesss) as avg_hottness,avg(get_duration) as avg_duration from musicdb GROUP BY get_artist_name order by avg_hottness desc");
   //artistHotness.show()
-  artistHotness.rdd.saveAsTextFile("artist_hotness")
-  merge("artist_hotness","artist_hotness_output.txt")
-  
-
+  artistHotness.rdd.saveAsTextFile("artist_hotness_" + dateString)
+  merge("artist_hotness_" + dateString, "artist_hotness_output_" + dateString + ".txt")
 
   // third task, counting music terms
   // we can use Spark SQL for this, need to use RDD and map reduce
@@ -118,9 +124,9 @@ object readjsons extends App {
   val artistTerms = spark.sql("SELECT distinct get_artist_name,get_artist_terms from musicdb");
   //artistTerms.show();
   val termsFlat = artistTerms.rdd
-  val first = termsFlat.first()
-  val mapped = first.getAs[WrappedArray[Int]](1)
-  val test = mapped.mkString("\n")
+  // val first = termsFlat.first()
+  //val mapped = first.getAs[WrappedArray[Int]](1)
+  //val test = mapped.mkString("\n")
 
   // val termsString = termsFlat.map { x => x.getAs[WrappedArray[Int]](0).mkString("\n") }
   // combine the terms
@@ -135,15 +141,11 @@ object readjsons extends App {
 
   //count the combined terms using reduceByKey, add the count value
   val termsCount = termsString.reduceByKey { case (x, y) => x + y }
-  val termsCountSorted = termsCount.map{ case (x,y) => (y,x) }.sortByKey(false);
-  termsCountSorted.saveAsTextFile("terms_count")
-  merge("terms_count","terms_count_output.txt")
+  val termsCountSorted = termsCount.map { case (x, y) => (y, x) }.sortByKey(false);
+  termsCountSorted.saveAsTextFile("terms_count_" + dateString)
+  merge("terms_count_" + dateString, "terms_count_output_" + dateString + ".txt")
 
   //print the result
   //println(termsCount.collect().mkString(","))
-
-  //print(termsFlat.first());
-  //val termsGroups = artistTerms.rdd.map { x => x.s } groupByKey
-  //musicType.rdd
 
 }
