@@ -13,16 +13,16 @@ import java.text.SimpleDateFormat
 
 object readjsons extends App {
   // spark local
-  val sc = new SparkContext(master = "local", appName = "practice");
-  val spark = SparkSession.builder().master("local").appName("practice").getOrCreate();
+  //val sc = new SparkContext(master = "local", appName = "practice");
+  //val spark = SparkSession.builder().master("local").appName("practice").getOrCreate();
   //val jsonFiles = sc.wholeTextFiles("/Volumes/HD-500GB/Users/nikolausn/Documents/msimsvn/msimrepo/lab-adm/python-converter/data/*/*/*/*.json");
-  val jsonFiles = sc.wholeTextFiles("/Volumes/HD-500GB/Users/nikolausn/Documents/msimsvn/msimrepo/lab-adm/python-converter/output.json");
+  //val jsonFiles = sc.wholeTextFiles("/Volumes/HD-500GB/Users/nikolausn/Documents/msimsvn/msimrepo/lab-adm/python-converter/output.json");
 
   // spark with hadoop
-  //val sc = new SparkContext(master="spark://sp17-cs511-02.cs.illinois.edu:7077",appName="practice");
-  //val spark = SparkSession.builder().master("spark://sp17-cs511-02.cs.illinois.edu:7077").appName("practice").getOrCreate(); 
-  // Read json files itno rdd
-  //val jsonFiles = sc.wholeTextFiles("hdfs://sp17-cs511-02.cs.illinois.edu:54310/musicds/*/*/*/*.json");
+  val sc = new SparkContext(master="spark://sp17-cs511-02.cs.illinois.edu:7077",appName="music-ds");
+  val spark = SparkSession.builder().master("spark://sp17-cs511-02.cs.illinois.edu:7077").appName("music-ds").getOrCreate(); 
+  // Read json files inyo rdd
+  val jsonFiles = sc.wholeTextFiles("hdfs://sp17-cs511-02.cs.illinois.edu:54310/music-ds/*.json");
 
   // convert jsonrdd into dataframe
   val jsonDF = spark.read.json(jsonFiles.values);
