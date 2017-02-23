@@ -151,7 +151,7 @@ object main extends App {
 
   println("Task 3 Execution, terms grouping (map reduce) finished")
 
-  prinln("All Jobs Executed succesfully") 
+  println("All Jobs Executed succesfully") 
 
   //print the result
   //println(termsCount.collect().mkString(","))
