@@ -20,7 +20,7 @@ object readjsons extends App {
   val sc = new SparkContext(master="spark://sp17-cs511-02.cs.illinois.edu:7077",appName="practice");
   val spark = SparkSession.builder().master("spark://sp17-cs511-02.cs.illinois.edu:7077").appName("practice").getOrCreate(); 
   // Read json files itno rdd
-  val jsonFiles = sc.wholeTextFiles("hdfs://sp17-cs511-02.cs.illinois.edu:54310/musicds-subset/*/*/*/*.json");
+  val jsonFiles = sc.wholeTextFiles("hdfs://sp17-cs511-02.cs.illinois.edu:54310/music-ds/*.json");
 
   // convert jsonrdd into dataframe
   val jsonDF = spark.read.json(jsonFiles.values);
