@@ -20,8 +20,8 @@ object readjsons extends App {
   val sc = new SparkContext(master="spark://sp17-cs511-02.cs.illinois.edu:7077",appName="practice");
   val spark = SparkSession.builder().master("spark://sp17-cs511-02.cs.illinois.edu:7077").appName("practice").getOrCreate(); 
   // Read json files itno rdd
-  //val jsonFiles = sc.wholeTextFiles("hdfs://sp17-cs511-02.cs.illinois.edu:54310/music-ds/*.json");
-  val jsonFiles = sc.wholeTextFiles("/srv/dataset/*.json");
+  val jsonFiles = sc.wholeTextFiles("hdfs://sp17-cs511-02.cs.illinois.edu:54310/music-ds/*.json");
+  //val jsonFiles = sc.wholeTextFiles("/srv/dataset/*.json");
 
   // convert jsonrdd into dataframe
   val jsonDF = spark.read.json(jsonFiles.values);
@@ -116,11 +116,11 @@ object readjsons extends App {
   // we can use Spark SQL for this, need to use RDD and map reduce
   // this works like wordcount but the complexity lies in the list of string for every RDD row
   // val termsFlat = artistTerms.rdd.groupBy { x => x }.map( t => (t._1,t._2.size))
-  val artistTerms = spark.sql("SELECT get_artist_terms from musicdb");
+  val artistTerms = spark.sql("SELECT distinct get_artist_name,get_artist_terms from musicdb");
   //artistTerms.show();
   val termsFlat = artistTerms.rdd
   val first = termsFlat.first()
-  val mapped = first.getAs[WrappedArray[Int]](0)
+  val mapped = first.getAs[WrappedArray[Int]](1)
   val test = mapped.mkString("\n")
 
   // val termsString = termsFlat.map { x => x.getAs[WrappedArray[Int]](0).mkString("\n") }
@@ -129,14 +129,15 @@ object readjsons extends App {
   // so it will combine all the values in the RDD
   val termsString = termsFlat.map {
     x =>
-      x.getAs[WrappedArray[String]](0).groupBy {
+      x.getAs[WrappedArray[String]](1).groupBy {
         l => l
       }.map(f => (f._1, f._2.length))
   }.flatMap(identity)
 
   //count the combined terms using reduceByKey, add the count value
   val termsCount = termsString.reduceByKey { case (x, y) => x + y }
-  termsCount.saveAsTextFile("terms_count")
+  val termsCountSorted = termsCount.map{ case (x,y) => (y,x) }.sortByKey(false);
+  termsCountSorted.saveAsTextFile("terms_count")
   merge("terms_count","terms_count_output.txt")
 
   //print the result
