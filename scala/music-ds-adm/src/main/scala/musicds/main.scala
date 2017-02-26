@@ -104,20 +104,25 @@ object main extends App {
   val test = spark.sql("SELECT * from musicdb");
   //test.show()
 
-  val artistSong = spark.sql("SELECT get_year,get_artist_name,count(get_artist_name) as total_music from musicdb GROUP BY get_year,get_artist_name order by get_year desc,total_music desc");
+  val artistSong = spark.sql("SELECT get_year as year,get_artist_name as artist_name,count(get_artist_name) as total_music from musicdb GROUP BY get_year,get_artist_name order by get_year desc,total_music desc");
   //artistSong.show();
-  artistSong.rdd.saveAsTextFile("artist_song_" + dateString)
-  /*
-   * save output into one file
-   */
+  artistSong.coalesce(1).write.format("com.databricks.spark.csv").option("header","true").save("artist_song_" + dateString)
   merge("artist_song_" + dateString, "artist_song_output_" + dateString + ".txt")
+  
+  // if the result is big and memory can't handle it doesn't use coalesce, instead use this approach
+  //artistSong.rdd.saveAsTextFile("artist_song_" + dateString)  
+  //merge("artist_song_" + dateString, "artist_song_output_" + dateString + ".txt")
 
   println("Task 1 Execution, artist and song finished")
 
-  val artistHotness = spark.sql("SELECT get_artist_name,avg(get_artist_hotttnesss) as avg_hottness,avg(get_duration) as avg_duration from musicdb GROUP BY get_artist_name order by avg_hottness desc");
+  val artistHotness = spark.sql("SELECT get_artist_name as artist_name,avg(get_artist_hotttnesss) as avg_hottness,avg(get_duration) as avg_music_duration from musicdb GROUP BY get_artist_name order by avg_hottness desc");
   //artistHotness.show()
-  artistHotness.rdd.saveAsTextFile("artist_hotness_" + dateString)
+  artistHotness.coalesce(1).write.format("com.databricks.spark.csv").option("header","true").save("artist_hotness_" + dateString)
   merge("artist_hotness_" + dateString, "artist_hotness_output_" + dateString + ".txt")
+  
+  // if the result is big and memory can't handle it doesn't use coalesce, instead use this approach
+  //artistHotness.rdd.saveAsTextFile("artist_hotness_" + dateString)
+  //merge("artist_hotness_" + dateString, "artist_hotness_output_" + dateString + ".txt")
 
   println("Task 2 Execution, artist hotttnesss finished")
 
@@ -140,14 +145,25 @@ object main extends App {
     x =>
       x.getAs[WrappedArray[String]](1).groupBy {
         l => l
-      }.map(f => (f._1, f._2.length))
+      }.map(f => (f._1, 1))
   }.flatMap(identity)
 
   //count the combined terms using reduceByKey, add the count value
   val termsCount = termsString.reduceByKey { case (x, y) => x + y }
-  val termsCountSorted = termsCount.map { case (x, y) => (y, x) }.sortByKey(false);
-  termsCountSorted.saveAsTextFile("terms_count_" + dateString)
+  val termsCountSorted = termsCount.map { case (x, y) => (y, x) }.sortByKey(false).map{ case(x,y) => (y,x)};
+
+  //convert rdd to df later save to csv
+  val sqlContext = new SQLContext(sc) 
+  import sqlContext.implicits._
+  val termsCountDF = termsCountSorted.toDF("artist_term","count")
+  termsCountDF.coalesce(1).write.format("com.databricks.spark.csv").option("header","true").save("terms_count_" + dateString)  
   merge("terms_count_" + dateString, "terms_count_output_" + dateString + ".txt")
+
+
+  // if result is big and memory can't handle it doesn't use coalesce, instead use this approach
+  // termsCountSorted.saveAsTextFile("terms_count_" + dateString)
+  // merge("terms_count_" + dateString, "terms_count_output_" + dateString + ".txt")
+
 
   println("Task 3 Execution, terms grouping (map reduce) finished")
 
