@@ -10,6 +10,7 @@ import org.apache.commons.io.FileUtils
 import java.io.File
 import java.util.Date
 import java.text.SimpleDateFormat
+import org.apache.spark.sql.SQLContext
 
 object main extends App {
   // spark local
