@@ -1,4 +1,4 @@
-The script provided here is python-ingestor.py and python-ingestor-one.py
+The script provided here is music-hdfs-ingestor.py and music-hdfs-ingestor-one.py
 
 The purpose of these scripts are to convert HDF5 million music dataset files into JSON 
 format either as separated (bunch of) files like the original dataset or group some files into one big json file.
